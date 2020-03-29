@@ -8,7 +8,6 @@ require('./db/mongoose');
 
 const userRouter = require('./routers/user');
 
-// Apply middlewares
 app.use(express.json());
 app.use('/api', userRouter);
 
