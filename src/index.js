@@ -7,9 +7,11 @@ const port = process.env.PORT;
 require('./db/mongoose');
 
 const userRouter = require('./routers/user');
+const appointmentRouter = require('./routers/appointment');
 
 app.use(express.json());
 app.use('/api', userRouter);
+app.use('/api', appointmentRouter);
 
 app.listen(port, () => {
   console.log(`Server is up on port ${port}`);

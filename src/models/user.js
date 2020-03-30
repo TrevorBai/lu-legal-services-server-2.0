@@ -2,81 +2,113 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Appointment = require('./appointment');
 
-const userSchema = new mongoose.Schema({
-  firstName: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  lastName: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  username: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  email: {
-    type: String,
-    unique: true,
-    required: true,
-    trim: true,
-    lowercase: true,
-    validate(value) {
-      if (!validator.isEmail(value)) {
-        throw new Error('Email is invalid.');
-      }
-    }
-  },
-  password: {
-    type: String,
-    required: true,
-    minlength: 7,
-    trim: true,
-    validate(value) {
-      if (value.toLowerCase().includes('password')) {
-        throw new Error("Password cannot contain 'password'.");
-      }
-    }
-  },
-  confirmedPassword: {
-    type: String,
-    required: true,
-    minlength: 7,
-    trim: true,
-    validate(value) {
-      if (value.toLowerCase().includes('password')) {
-        throw new Error("Password cannot contain 'password'.");
-      }
-    }
-  },
-  isAdmin: {
-    type: Boolean,
-    default: false
-  },
-  tokens: [{
-    token: {
+const userSchema = new mongoose.Schema(
+  {
+    firstName: {
       type: String,
-      required: true
-    }
-  }]
+      required: true,
+      trim: true
+    },
+    lastName: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    username: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    email: {
+      type: String,
+      unique: true,
+      required: true,
+      trim: true,
+      lowercase: true,
+      validate(value) {
+        if (!validator.isEmail(value)) {
+          throw new Error('Email is invalid.');
+        }
+      }
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 7,
+      trim: true,
+      validate(value) {
+        if (value.toLowerCase().includes('password')) {
+          throw new Error("Password cannot contain 'password'.");
+        }
+      }
+    },
+    confirmedPassword: {
+      type: String,
+      required: true,
+      minlength: 7,
+      trim: true,
+      validate(value) {
+        if (value.toLowerCase().includes('password')) {
+          throw new Error("Password cannot contain 'password'.");
+        }
+      }
+    },
+    isAdmin: {
+      type: Boolean,
+      default: false
+    },
+    tokens: [
+      {
+        token: {
+          type: String,
+          required: true
+        }
+      }
+    ]
+  },
+  {
+    timestamps: true
+  }
+);
+
+userSchema.virtual('myAppointments', {
+  ref: 'Appointment',
+  localField: '_id',
+  foreignField: 'owner'
 });
 
+// It will applied to ***res.send(certainObject)***, express
+// by default automatically stringify the object we passed in.
+// We can convert it back to JSON and manipulate the object before
+// sending it back.
+userSchema.methods.toJSON = function() {
+  const user = this;
+  const userObject = user.toObject();
+
+  // hide password and tokens array when sending back response
+  delete userObject.password;
+  delete userObject.confirmedPassword;
+  delete userObject.tokens;
+
+  return userObject;
+};
+
+// On instance
 userSchema.methods.generateAuthToken = async function() {
   const user = this;
 
   // user._id 's type is ObjectId, JWT expects a string
   const token = jwt.sign({ _id: user._id.toString() }, process.env.SECRET);
 
-  user.tokens.push({token});
+  user.tokens.push({ token });
   await user.save();
 
   return token;
 };
 
+// On model
 userSchema.statics.findByCredentials = async (email, password) => {
   const user = await User.findOne({ email });
 
@@ -109,6 +141,14 @@ userSchema.pre('save', async function(next) {
     user.password = await bcrypt.hash(user.password, 8);
     user.confirmedPassword = user.password;
   }
+
+  next();
+});
+
+// Delete user appointments when user is removed
+userSchema.pre('remove', async function(next) {
+  const user = this;
+  await Appointment.deleteMany({ owner: user._id });
 
   next();
 });
