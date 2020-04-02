@@ -100,7 +100,7 @@ userSchema.methods.generateAuthToken = async function() {
   const user = this;
 
   // user._id 's type is ObjectId, JWT expects a string
-  const token = jwt.sign({ _id: user._id.toString() }, process.env.SECRET);
+  const token = jwt.sign({ _id: user._id.toString() }, process.env.SECRET, { expiresIn: '1h' });
 
   user.tokens.push({ token });
   await user.save();
