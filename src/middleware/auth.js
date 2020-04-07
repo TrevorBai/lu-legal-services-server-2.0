@@ -5,8 +5,11 @@ const auth = async (req, res, next) => {
   // console.log(req.method, req.path);
   try {
     let token = null;
+    // console.log('req :', req.method);
     if (req.method === 'GET') {
       token = req.header('Authorization').replace('Bearer ', '');
+    } else if (req.method === 'PATCH') {
+      token = req.headers.authorization;
     } else {
       token = req.body.headers.Authorization;
     }

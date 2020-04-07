@@ -3,7 +3,6 @@ const router = new express.Router();
 const auth = require('../middleware/auth');
 const Appointment = require('../models/appointment');
 
-
 router.post('/appointments', auth, async (req, res) => {
   const appointment = new Appointment({
     ...req.body,
