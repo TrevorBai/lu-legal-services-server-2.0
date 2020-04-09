@@ -102,6 +102,15 @@ userSchema.methods.generateAuthToken = async function() {
   // user._id 's type is ObjectId, JWT expects a string
   const token = jwt.sign({ _id: user._id.toString() }, process.env.SECRET, { expiresIn: '1h' });
 
+  // We are here implementing a Queue data structure.
+  // Potentially, I could improve time complexity by using
+  // other data structures other than array.
+
+  // Clean up expired token in a hour
+  setTimeout(() => {
+    user.tokens.shift();
+  }, 3600 * 1000);
+
   user.tokens.push({ token });
   await user.save();
 

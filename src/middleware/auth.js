@@ -4,17 +4,7 @@ const User = require('../models/user');
 const auth = async (req, res, next) => {
   // console.log(req.method, req.path);
   try {
-    let token = null;
-    if (req.method === 'GET') {
-      token = req.header('Authorization').replace('Bearer ', '');
-    } else if (req.method === 'PATCH' ) {
-      token = req.headers.authorization;
-    } else if (req.method === 'DELETE') {
-      token = req.headers.authorization;
-    } else {
-      token = req.body.headers.Authorization;
-    }
-
+    const token = req.headers.authorization.replace('Bearer ', '');
     const decoded = jwt.verify(token, process.env.SECRET);
     // check both the _id and the token itself as a double security check.
     // If a user logout, he should not read his user info/profile. One user could
