@@ -105,10 +105,13 @@ userSchema.methods.generateAuthToken = async function() {
   // We are here implementing a Queue data structure.
   // Potentially, I could improve time complexity by using
   // other data structures other than array.
+  // Using singly linked list fullfills the goal. However, to integrate
+  // with mongoose schemaType seems like an amount of work.
 
   // Clean up expired token in a hour
-  setTimeout(() => {
+  setTimeout( async () => {
     user.tokens.shift();
+    await user.save();
   }, 3600 * 1000);
 
   user.tokens.push({ token });
