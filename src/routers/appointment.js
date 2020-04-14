@@ -19,9 +19,14 @@ router.post('/appointments', auth, async (req, res) => {
 
 router.get('/appointments', auth, async (req, res) => {
   try {
-    // const appointments = await Appointment.find({ owner: req.user._id });
-    await req.user.populate('myAppointments').execPopulate();
-    res.send(req.user.myAppointments);
+    if (req.user.isAdmin) {
+      const allAppointments = await Appointment.find();
+      res.send(allAppointments);
+    } else {
+      // const appointments = await Appointment.find({ owner: req.user._id });
+      await req.user.populate('myAppointments').execPopulate();
+      res.send(req.user.myAppointments);
+    }
   } catch (e) {
     res.status(500).send({ error: e.message });
   }
