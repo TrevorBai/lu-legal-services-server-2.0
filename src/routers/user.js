@@ -2,14 +2,18 @@ const express = require('express');
 const router = new express.Router();
 const auth = require('../middleware/auth');
 const User = require('../models/user');
-const { sendWelcomeEmail, sendCancelationAccountEmail } = require('../emails/account');
+const {
+  sendWelcomeEmail,
+  sendCancelationAccountEmail,
+  sendPasswordResetEmail,
+} = require('../emails/account');
 
 router.post('/users', async (req, res) => {
   const user = new User(req.body);
 
   try {
     await user.save();
-    sendWelcomeEmail(user.email, user.username);  // don't await here, let it be asynchronized
+    sendWelcomeEmail(user.email, user.username); // don't await here, let it be asynchronized
     const token = await user.generateAuthToken();
     res.status(201).send({ user, token });
   } catch (e) {
@@ -26,6 +30,31 @@ router.post('/users/login', async (req, res) => {
     const token = await user.generateAuthToken();
 
     res.send({ user, token });
+  } catch (e) {
+    res.status(400).send({ error: e.message });
+  }
+});
+
+/*
+      Password Reset
+*/
+router.post('/users/passwordReset', async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.body.email });
+
+    if (!user) {
+      // Better not provide more specific info to decrease the security
+      throw new Error('Unable to find your account');
+    }
+
+    const passwordGenerator = Math.random().toString(36).slice(2);
+    console.log(passwordGenerator);
+    user.password = passwordGenerator;
+    user.confirmedPassword = user.password;
+    await user.save();
+    sendPasswordResetEmail(user.email, user.username, passwordGenerator);
+
+    res.send({ user });
   } catch (e) {
     res.status(400).send({ error: e.message });
   }
