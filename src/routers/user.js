@@ -2,12 +2,14 @@ const express = require('express');
 const router = new express.Router();
 const auth = require('../middleware/auth');
 const User = require('../models/user');
+const { sendWelcomeEmail, sendCancelationAccountEmail } = require('../emails/account');
 
 router.post('/users', async (req, res) => {
   const user = new User(req.body);
 
   try {
     await user.save();
+    sendWelcomeEmail(user.email, user.username);  // don't await here, let it be asynchronized
     const token = await user.generateAuthToken();
     res.status(201).send({ user, token });
   } catch (e) {
@@ -57,7 +59,7 @@ router.get('/users/me', auth, async (req, res) => {
 
 router.get('/users/:id', auth, async (req, res) => {
   try {
-    const user = await User.findOne({_id: req.params.id});
+    const user = await User.findOne({ _id: req.params.id });
     if (!user) res.status(404).send();
     res.send(user);
   } catch (e) {
@@ -93,6 +95,7 @@ router.patch('/users/me', auth, async (req, res) => {
 router.delete('/users/me', auth, async (req, res) => {
   try {
     await req.user.remove();
+    sendCancelationAccountEmail(req.user.email, req.user.username);
     res.send(req.user);
   } catch (e) {
     res.status(500).send({ error: e.message });
