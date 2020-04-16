@@ -9,17 +9,17 @@ const userSchema = new mongoose.Schema(
     firstName: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     lastName: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     username: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     email: {
       type: String,
@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema(
         if (!validator.isEmail(value)) {
           throw new Error('Email is invalid.');
         }
-      }
+      },
     },
     password: {
       type: String,
@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema(
         if (value.toLowerCase().includes('password')) {
           throw new Error("Password cannot contain 'password'.");
         }
-      }
+      },
     },
     confirmedPassword: {
       type: String,
@@ -53,37 +53,37 @@ const userSchema = new mongoose.Schema(
         if (value.toLowerCase().includes('password')) {
           throw new Error("Password cannot contain 'password'.");
         }
-      }
+      },
     },
     isAdmin: {
       type: Boolean,
-      default: false
+      default: false,
     },
     tokens: [
       {
         token: {
           type: String,
-          required: true
-        }
-      }
-    ]
+          required: true,
+        },
+      },
+    ],
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
 userSchema.virtual('myAppointments', {
   ref: 'Appointment',
   localField: '_id',
-  foreignField: 'owner'
+  foreignField: 'owner',
 });
 
 // It will applied to ***res.send(certainObject)***, express
 // by default automatically stringify the object we passed in.
 // We can convert it back to JSON and manipulate the object before
 // sending it back.
-userSchema.methods.toJSON = function() {
+userSchema.methods.toJSON = function () {
   const user = this;
   const userObject = user.toObject();
 
@@ -96,11 +96,13 @@ userSchema.methods.toJSON = function() {
 };
 
 // On instance
-userSchema.methods.generateAuthToken = async function() {
+userSchema.methods.generateAuthToken = async function () {
   const user = this;
 
   // user._id 's type is ObjectId, JWT expects a string
-  const token = jwt.sign({ _id: user._id.toString() }, process.env.SECRET, { expiresIn: '1h' });
+  const token = jwt.sign({ _id: user._id.toString() }, process.env.SECRET, {
+    expiresIn: '1h',
+  });
 
   // We are here implementing a Queue data structure.
   // Potentially, I could improve time complexity by using
@@ -109,7 +111,7 @@ userSchema.methods.generateAuthToken = async function() {
   // with mongoose schemaType seems like an amount of work.
 
   // Clean up expired token in a hour
-  setTimeout( async () => {
+  setTimeout(async () => {
     user.tokens.shift();
     await user.save();
   }, 3600 * 1000);
@@ -121,26 +123,32 @@ userSchema.methods.generateAuthToken = async function() {
 };
 
 // On model
-userSchema.statics.findByCredentials = async (email, password) => {
+userSchema.statics.findByCredentials = async (
+  email,
+  password,
+  login = true
+) => {
   const user = await User.findOne({ email });
 
-  if (!user) {
-    // Better not provide more specific info to decrease the security
-    throw new Error('Unable to login');
+  if (login) {
+    if (!user) {
+      // Better not provide more specific info to decrease the security
+      throw new Error('Unable to login');
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) throw new Error('Unable to login');
+    return user;
   }
 
+  if (!user) throw new Error('Unable to identify you');
   const isMatch = await bcrypt.compare(password, user.password);
-
-  if (!isMatch) {
-    throw new Error('Unable to login');
-  }
-
+  if (!isMatch) throw new Error('Unable to identify you');
   return user;
 };
 
 // Hash the plain text password before saving
 // Need bind this so do not use arrow function here
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   const user = this;
 
   if (user.password !== user.confirmedPassword) {
@@ -158,7 +166,7 @@ userSchema.pre('save', async function(next) {
 });
 
 // Delete user appointments when user is removed
-userSchema.pre('remove', async function(next) {
+userSchema.pre('remove', async function (next) {
   const user = this;
   await Appointment.deleteMany({ owner: user._id });
 

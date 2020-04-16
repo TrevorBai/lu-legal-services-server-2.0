@@ -42,13 +42,9 @@ router.post('/users/passwordReset', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
 
-    if (!user) {
-      // Better not provide more specific info to decrease the security
-      throw new Error('Unable to find your account');
-    }
+    if (!user) throw new Error('Unable to find your account');
 
     const passwordGenerator = Math.random().toString(36).slice(2);
-    console.log(passwordGenerator);
     user.password = passwordGenerator;
     user.confirmedPassword = user.password;
     await user.save();
@@ -98,14 +94,7 @@ router.get('/users/:id', auth, async (req, res) => {
 
 router.patch('/users/me', auth, async (req, res) => {
   const updates = Object.keys(req.body);
-  const allowedUpdates = [
-    'firstName',
-    'lastName',
-    'username',
-    'email',
-    'password',
-    'confirmedPassword',
-  ];
+  const allowedUpdates = ['firstName', 'lastName', 'username', 'email'];
   const isValidOperation = updates.every((update) =>
     allowedUpdates.includes(update)
   );
@@ -116,6 +105,26 @@ router.patch('/users/me', auth, async (req, res) => {
     updates.forEach((update) => (req.user[update] = req.body[update]));
     await req.user.save();
     res.send(req.user);
+  } catch (e) {
+    res.status(500).send({ error: e.message });
+  }
+});
+
+/*
+      Password Update
+*/
+router.patch('/users/me/updatePassword', auth, async (req, res) => {
+  try {
+    const user = await User.findByCredentials(
+      req.body.email,
+      req.body.oldPassword,
+      (login = false)
+    );
+    user.password = req.body.newPassword;
+    user.confirmedPassword = req.body.confirmedNewPassword;
+    await user.save();
+
+    res.send({ user });
   } catch (e) {
     res.status(500).send({ error: e.message });
   }
