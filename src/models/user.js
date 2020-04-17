@@ -96,12 +96,12 @@ userSchema.methods.toJSON = function () {
 };
 
 // On instance
-userSchema.methods.generateAuthToken = async function () {
+userSchema.methods.generateAuthToken = async function ( expiration = '1' ) {
   const user = this;
 
   // user._id 's type is ObjectId, JWT expects a string
   const token = jwt.sign({ _id: user._id.toString() }, process.env.SECRET, {
-    expiresIn: '1h',
+    expiresIn: `${expiration}h`,
   });
 
   // We are here implementing a Queue data structure.
@@ -110,11 +110,13 @@ userSchema.methods.generateAuthToken = async function () {
   // Using singly linked list fullfills the goal. However, to integrate
   // with mongoose schemaType seems like an amount of work.
 
+  const expirationInMilliseconde = Number(expiration) * 3600 * 1000;
+
   // Clean up expired token in a hour
   setTimeout(async () => {
     user.tokens.shift();
     await user.save();
-  }, 3600 * 1000);
+  }, expirationInMilliseconde);
 
   user.tokens.push({ token });
   await user.save();

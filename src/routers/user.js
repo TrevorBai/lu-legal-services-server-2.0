@@ -27,7 +27,13 @@ router.post('/users/login', async (req, res) => {
       req.body.email,
       req.body.password
     );
-    const token = await user.generateAuthToken();
+    let token = null;
+    if (req.body.expiration) {
+      const expiration = '48'; // hours
+      token = await user.generateAuthToken(expiration);
+    } else {
+      token = await user.generateAuthToken();
+    }
 
     res.send({ user, token });
   } catch (e) {
