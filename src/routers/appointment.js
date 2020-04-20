@@ -6,8 +6,14 @@ const {
   readAppointments,
   readAppointmentById,
   deleteAppointmentById,
-  updateAppointmentById
+  updateAppointmentById,
+  appointmentAggregation
 } = require('../controllers/appointment');
+
+// *********************************************************
+//   Operations which don't need to be authenticated first
+// *********************************************************
+router.get('/aggregation', appointmentAggregation);
 
 // *********************************************************
 //     Operations which need to be authenticated first

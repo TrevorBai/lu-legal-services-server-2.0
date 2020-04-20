@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Appointment = require('../models/appointment');
 
 const bookAppointment = async (req, res) => {
@@ -86,10 +87,36 @@ const updateAppointmentById = async (req, res) => {
   }
 };
 
+const appointmentAggregation = async (req, res) => {
+  const db = mongoose.connection;
+
+  const appointmentDateAndTime = db.collection('appointments').aggregate(
+    [ // aggregation pipeline array
+      {
+        $project: {
+          yearMonthDayUTC: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+          appointmentTime: true
+        }
+      },
+      { "$out": "appointmentDateAndTime" }
+    ]
+  );
+
+  await appointmentDateAndTime.toArray();  // Form the collection
+
+  const dateAndTime = db.collection('appointmentDateAndTime').aggregate([
+    { $group: { _id: "$yearMonthDayUTC", appointmentTime: { $push: "$appointmentTime" } } }
+  ]);
+  const dateAndTimeArray = await dateAndTime.toArray();
+
+  res.send(dateAndTimeArray);
+};
+
 module.exports = {
   bookAppointment,
   readAppointments,
   readAppointmentById,
   deleteAppointmentById,
-  updateAppointmentById
+  updateAppointmentById,
+  appointmentAggregation,
 };
